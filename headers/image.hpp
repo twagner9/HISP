@@ -5,6 +5,7 @@
 #include <tuple>
 #include <vector>
 
+enum class ImageOperations { SIMPLE_BLUR, GAUSSIAN_BLUR, SEGMENTATION };
 class Image {
    public:
     std::vector<unsigned char> data;
@@ -13,8 +14,10 @@ class Image {
     int num_channels;
     std::string input_fname;
     std::string output_fname;
+    ImageOperations op_type;
 
     Image();
+    Image(const std::string ifname, const std::string ofname, ImageOperations op = ImageOperations::SIMPLE_BLUR);
     ~Image();
 };
 

@@ -17,4 +17,5 @@ set(CLI11_DIR "${CMAKE_SOURCE_DIR}/extern/CLI11" CACHE STRING "CLI git repositor
 endif()
 
 target_include_directories(HISP PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/extern/stb)
+target_include_directories(HISP PRIVATE ${CMAKE_ROOT}/headers)
 include_directories(${CLI11_DIR}/include)

@@ -5,6 +5,8 @@
 
 #include "image.hpp"
 
+namespace ImageFilters {
+
 // TODO: make this gaussian by weighting each pixel's value
 /**
  * @brief Apply a blur to an image.
@@ -43,5 +45,6 @@ void blur(Image *img, const int &blur_size) {
     // just reclaim it and do a constant time swap.
     img->data = std::move(res);
 }
+}  // namespace ImageFilters
 
 #endif
