@@ -5,7 +5,7 @@
 #include <tuple>
 #include <vector>
 
-enum class ImageOperations { SIMPLE_BLUR, GAUSSIAN_BLUR, SEGMENTATION };
+enum class ImageOperations { SIMPLE_BLUR, GAUSSIAN_BLUR, SEGMENTATION, GRAYSCALE };
 class Image {
    public:
     std::vector<unsigned char> data;
