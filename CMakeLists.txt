@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.25.1) 
+cmake_minimum_required(VERSION 3.22) 
 project(HeterogeneousImageProcessingPipeline)
 
 set(CMAKE_CXX_STANDARD 20)
@@ -16,4 +16,5 @@ if(NOT DEFINED CLI11_DIR)
 set(CLI11_DIR "${CMAKE_SOURCE_DIR}/extern/CLI11" CACHE STRING "CLI git repository")
 endif()
 
+target_include_directories(HISP PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/extern/stb)
 include_directories(${CLI11_DIR}/include)
