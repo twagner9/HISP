@@ -47,6 +47,19 @@ void blur(Image *img, const int &blur_size) {
     // just reclaim it and do a constant time swap.
     img->data = std::move(res);
 }
+
+void grayscale(Image *img) {
+    const int NUM_BYTES = img->x_dim * img->y_dim * img->num_channels;
+    int rgbOffset = 3;
+
+    for (int i = 0; i < NUM_BYTES; i += rgbOffset) {
+        int pixel_idx = i / rgbOffset;
+        float avg = (img->data[i] + img->data[i + 1] + img->data[i + 2]) / 3;
+        img->data[i] = static_cast<unsigned char>(avg);
+        img->data[i + 1] = static_cast<unsigned char>(avg);
+        img->data[i + 2] = static_cast<unsigned char>(avg);
+    }
+}
 }  // namespace ImageFilters
 
 #endif

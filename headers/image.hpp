@@ -17,7 +17,7 @@ class Image {
     ImageOperations op_type;
 
     Image();
-    Image(const std::string ifname, const std::string ofname, ImageOperations op = ImageOperations::SIMPLE_BLUR);
+    Image(const std::string ifname, const std::string ofname, ImageOperations op);
     ~Image();
 };
 

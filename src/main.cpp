@@ -33,10 +33,8 @@ int main(int argc, char **argv) {
     std::string img_ifname, img_ofname, op_string;
     ImageOperations selected_op{ImageOperations::SIMPLE_BLUR};
     app.add_option("-i, --input", img_ifname, "Input image to be used during program execution.")->check(CLI::ExistingFile)->required();
-
     app.add_option("-o, --output", img_ofname, "Output image that will be written after operation has been applied.")->required();
-
-    app.add_option("-m, --mode", op_string, "The operation to be performed on the input image.")
+    app.add_option("-m, --mode", selected_op, "The operation to be performed on the input image.")
         ->transform(CLI::CheckedTransformer(op_map, CLI::ignore_case))  // validate input against map keys
         ->required();
 
@@ -68,10 +66,9 @@ int main(int argc, char **argv) {
     std::cout << "Image output filename is: " << img_ofname << std::endl;
     std::cout << ((use_mp) ? "Using CPU-based multi-threading..." : "Using single thread...") << std::endl;
     std::cout << "Image operation: " << op_string << std::endl;
-    ImageOperations user_selected_op = op_map[op_string];
 
     // 3. Create the Image object that will hold the required data, and copy the pixel data to it.
-    std::unique_ptr<Image> img = std::make_unique<Image>(img_ifname, img_ofname);
+    std::unique_ptr<Image> img = std::make_unique<Image>(img_ifname, img_ofname, selected_op);
     unsigned char *raw_data = stbi_load(img->input_fname.c_str(), &img->x_dim, &img->y_dim, &img->num_channels, 0);
     const int total_bytes = img->x_dim * img->y_dim * img->num_channels;
     img->data.resize(total_bytes);
@@ -81,14 +78,16 @@ int main(int argc, char **argv) {
     // TODO: Add basic profiling to view how long the operation takes -- this will come in handy when adding multithreading
     // 4. Apply user selected image operation.
     if (img->op_type == ImageOperations::SIMPLE_BLUR) {
-        std::cout << "Applying blur...\n\n";
+        std::cout << "\nApplying blur..." << std::endl;
         ImageFilters::blur(img.get(), 10);
     } else if (img->op_type == ImageOperations::GAUSSIAN_BLUR) {
     } else if (img->op_type == ImageOperations::GRAYSCALE) {
+        std::cout << "\nConverting to grayscale...";
+        ImageFilters::grayscale(img.get());
     } else if (img->op_type == ImageOperations::SEGMENTATION) {
     } else {
         std::cerr << "Unknown image operation selected. Shouldn't get here. Abort.";
-        free(raw_data);
+        return 1;
     }
 
     // 5. Write out the modified image in the correct format.
