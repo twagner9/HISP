@@ -1,11 +1,11 @@
+#include <chrono>
+#include <iostream>
+#include <string>
+
 #include "../headers/filters.hpp"
 #include "../headers/image.hpp"
 #include "CLI/App.hpp"
 #include "CLI/CLI.hpp"
-// #include "CLI/Config.hpp"
-// #include "CLI/Formatter.hpp"
-#include <iostream>
-#include <string>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
@@ -34,9 +34,12 @@ int main(int argc, char **argv) {
     ImageOperations selected_op{ImageOperations::SIMPLE_BLUR};
     app.add_option("-i, --input", img_ifname, "Input image to be used during program execution.")->check(CLI::ExistingFile)->required();
     app.add_option("-o, --output", img_ofname, "Output image that will be written after operation has been applied.")->required();
-    app.add_option("-m, --mode", selected_op, "The operation to be performed on the input image.")
-        ->transform(CLI::CheckedTransformer(op_map, CLI::ignore_case))  // validate input against map keys
-        ->required();
+    auto mode_opt = app.add_option("-m, --mode", selected_op, "The operation to be performed on the input image.")
+                        ->transform(CLI::CheckedTransformer(op_map, CLI::ignore_case))  // validate input against map keys
+                        ->required();
+
+    int user_blur_rad{1};
+    auto blur_opt = app.add_option("-r, --radius", user_blur_rad, "The pixel radius to be used when averaging pixels for the blur operation.");
 
     bool use_mp{false};
     app.add_option("-p, --parallel", use_mp, "Whether algorithms should execute using multiple threads.");
@@ -70,25 +73,42 @@ int main(int argc, char **argv) {
     // 3. Create the Image object that will hold the required data, and copy the pixel data to it.
     std::unique_ptr<Image> img = std::make_unique<Image>(img_ifname, img_ofname, selected_op);
     unsigned char *raw_data = stbi_load(img->input_fname.c_str(), &img->x_dim, &img->y_dim, &img->num_channels, 0);
-    const int total_bytes = img->x_dim * img->y_dim * img->num_channels;
+    const int total_bytes{img->x_dim * img->y_dim * img->num_channels};
+
     img->data.resize(total_bytes);
     std::memcpy(img->data.data(), raw_data, total_bytes);
     free(raw_data);
 
+    if (user_blur_rad <= 0) {
+        std::cout << "Must set blur radius to be greater than 0; defaulting to radius of 1." << std::endl;
+        user_blur_rad = 1;
+    }
     // TODO: Add basic profiling to view how long the operation takes -- this will come in handy when adding multithreading
     // 4. Apply user selected image operation.
+    auto time_start{std::chrono::high_resolution_clock::now()};
     if (img->op_type == ImageOperations::SIMPLE_BLUR) {
         std::cout << "\nApplying blur..." << std::endl;
-        ImageFilters::blur(img.get(), 10);
+        ImageFilters::blur(img.get(), user_blur_rad);
     } else if (img->op_type == ImageOperations::GAUSSIAN_BLUR) {
+        std::cout << "\nApplying Gaussian Blur..." << std::endl;
+        ImageFilters::gaussian_blur(img.get(), user_blur_rad);
     } else if (img->op_type == ImageOperations::GRAYSCALE) {
-        std::cout << "\nConverting to grayscale...";
+        std::cout << "\nConverting to grayscale..." << std::endl;
         ImageFilters::grayscale(img.get());
     } else if (img->op_type == ImageOperations::SEGMENTATION) {
     } else {
         std::cerr << "Unknown image operation selected. Shouldn't get here. Abort.";
         return 1;
     }
+
+    // A bit of profiling to see how long the operations are taking.
+    auto time_end{std::chrono::high_resolution_clock::now()};
+    auto duration{time_end - time_start};
+    auto minutes{std::chrono::duration_cast<std::chrono::minutes>(duration)};
+    auto seconds{std::chrono::duration_cast<std::chrono::seconds>(duration - minutes)};
+
+    std::cout << std::setfill('0') << "\nJob runtime:\t\t" << std::setw(2) << minutes << ":" << std::setw(2) << seconds << std::endl;
+    std::cout << std::endl;
 
     // 5. Write out the modified image in the correct format.
     if (ext == "jpg") {
