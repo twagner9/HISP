@@ -61,55 +61,136 @@ void gaussian_blur(Image *img, const int &blur_radius) {
     // containing 3 channels. result array should be the same size as the input.
     const int NUM_BYTES{img->x_dim * img->y_dim * img->num_channels};
     constexpr int RGB_OFFSET{3};
-    std::vector<unsigned char> res(NUM_BYTES);
     float sigma{blur_radius / 2.0f};
 
-    // FIXME: separable convolution will avoid 2D kernel, instead doing size x 1 and 1 x size kernels to reduce the number
-    // mathematical operations being performed.
-    // 1. Generate the kernel. Pre-made kernel will be applied as needed across all
-    float kernel_sum{0.0f};
     int kernel_size{blur_radius * 2 + 1};
-    std::vector<float> gaussian_kernel(kernel_size * kernel_size);
+    float kernel_sum{0.0f};
+    std::vector<float> gaussian_kernel(kernel_size);
+    for (int i{0}; i < kernel_size; i++) {
+        int x{i - blur_radius};
 
-    for (int ky{-blur_radius}; ky <= blur_radius; ky++) {
-        for (int kx{-blur_radius}; kx <= blur_radius; kx++) {
-            float weight{std::exp(-(ky * ky + kx * kx) / (2 * sigma * sigma))};
-            gaussian_kernel[(ky + blur_radius) * kernel_size + (kx + blur_radius)] = weight;
-            kernel_sum += weight;
-        }
+        // Formula for 1D kernel is: e^(-(x * x) / 2 * sigma^2)
+        gaussian_kernel[i] = std::exp(-(x * x) / (2 * (sigma * sigma)));
+        kernel_sum += gaussian_kernel[i];
     }
 
-    // 2. Loop the input/output
-    // (NUM_BYTES / 3) * (blur_radius * 2 + 1)^2 iterations...this is pretty expensive
+    // Weight each kernel pixel by the total sum of all pixels in the kernel
+    for (float &weight : gaussian_kernel) {
+        weight /= kernel_sum;
+    }
 
-    // 3. Get the specific pixel indices used for this pixel
+    // NOTICE: store this as a float before using the output vector to convert back to unsigned char with clamping at 0 and 255
+    std::vector<float> horizontal_pass(NUM_BYTES, 0.0f);
+
+    // Loop over the img data horizontally first; this will be stored in the horizontal_pass intermediate, which means it contains all of the
+    // horizontal blurring pixel values
     for (int y{0}; y < img->y_dim; y++) {
         for (int x{0}; x < img->x_dim; x++) {
-            float r_val{0}, g_val{0}, b_val{0};
+            float r_sum{0.0f};
+            float g_sum{0.0f};
+            float b_sum{0.0f};
 
-            for (int dy{-blur_radius}; dy < blur_radius; dy++) {
-                for (int dx{-blur_radius}; dx < blur_radius; dx++) {
-                    // Clamping is meant to prevent brightness changes during blur application
-                    int ix{std::clamp(x + dx, 0, img->x_dim - 1)};
-                    int iy{std::clamp(y + dy, 0, img->y_dim - 1)};
+            // 1D loop means when the vertical pass is performed, what's happening is actually 2N rather than the N^2 of a 2D kernel
+            for (int k = 0; k < kernel_size; k++) {
+                int img_x = x + k - blur_radius;
 
-                    float weight = gaussian_kernel[(dy + blur_radius) * kernel_size + dx + blur_radius];
-                    // int neighbor_idx{((dy + y) * img->x_dim + (dx + x)) * RGB_OFFSET};
-                    int idx{(iy * img->x_dim + ix) * RGB_OFFSET};
+                // No padding, so make sure that the img_x isn't exceeding bounds.
+                if (img_x < 0) img_x = 0;
+                if (img_x >= img->x_dim) img_x = img->x_dim - 1;
 
-                    r_val += img->data[idx] * weight;
-                    g_val += img->data[idx + 1] * weight;
-                    b_val += img->data[idx + 2] * weight;
-                }
+                // Calculate index for the shifting x
+                int idx = (y * img->x_dim + img_x) * RGB_OFFSET;
+
+                r_sum += img->data[idx] * gaussian_kernel[k];
+                g_sum += img->data[idx + 1] * gaussian_kernel[k];
+                b_sum += img->data[idx + 2] * gaussian_kernel[k];
             }
-            int res_idx{(y * img->x_dim + x) * RGB_OFFSET};
-            res[res_idx] = (unsigned char)std::round((r_val / kernel_sum));
-            res[res_idx + 1] = (unsigned char)std::round((g_val / kernel_sum));
-            res[res_idx + 2] = (unsigned char)std::round((b_val / kernel_sum));
+
+            // Out index is calculated based on the original for loop (not shifting by kernel here) and clamped to fit within unsigned char
+            int out_idx = (y * img->x_dim + x) * RGB_OFFSET;
+            horizontal_pass[out_idx] = r_sum;
+            horizontal_pass[out_idx + 1] = g_sum;
+            horizontal_pass[out_idx + 2] = b_sum;
         }
     }
 
-    img->data = std::move(res);
+    // Have the horizontal blur values; now apply the vertical blur to the existing horizontal ones, and copy to output
+    std::vector<unsigned char> output(NUM_BYTES, 0.0f);
+    for (int y{0}; y < img->y_dim; y++) {
+        for (int x{0}; x < img->x_dim; x++) {
+            float r_sum{0.0f};
+            float g_sum{0.0f};
+            float b_sum{0.0f};
+
+            for (int k = 0; k < kernel_size; k++) {
+                int img_y = y + k - blur_radius;
+
+                // No padding, so make sure that the img_y isn't exceeding bounds.
+                if (img_y < 0) img_y = 0;
+                if (img_y >= img->y_dim) img_y = img->y_dim - 1;
+
+                // Calculate index for shifting y
+                int idx = (img_y * img->x_dim + x) * RGB_OFFSET;
+
+                // Mulitply the intermediate by the vertical form of the kernel (identical to horizontal, just traveling up and down rows instead of
+                // across them)
+                r_sum += horizontal_pass[idx] * gaussian_kernel[k];
+                g_sum += horizontal_pass[idx + 1] * gaussian_kernel[k];
+                b_sum += horizontal_pass[idx + 2] * gaussian_kernel[k];
+            }
+
+            // Out index is calculated based on the original for loop (not shifting by kernel here) and clamped to fit within unsigned char
+            int out_idx = (y * img->x_dim + x) * RGB_OFFSET;
+            output[out_idx] = static_cast<unsigned char>(std::clamp(r_sum, 0.0f, 255.0f));
+            output[out_idx + 1] = static_cast<unsigned char>(std::clamp(g_sum, 0.0f, 255.0f));
+            output[out_idx + 2] = static_cast<unsigned char>(std::clamp(b_sum, 0.0f, 255.0f));
+        }
+    }
+
+    img->data = std::move(output);
+
+    // mathematical operations being performed.
+    // 1. Generate the kernel. Pre-made kernel will be applied as needed across all
+
+    // for (int ky{-blur_radius}; ky <= blur_radius; ky++) {
+    //     for (int kx{-blur_radius}; kx <= blur_radius; kx++) {
+    //         float weight{std::exp(-(ky * ky + kx * kx) / (2 * sigma * sigma))};
+    //         gaussian_kernel[(ky + blur_radius) * kernel_size + (kx + blur_radius)] = weight;
+    //         kernel_sum += weight;
+    //     }
+    // }
+
+    // // 2. Loop the input/output
+    // // (NUM_BYTES / 3) * (blur_radius * 2 + 1)^2 iterations...this is pretty expensive
+
+    // // 3. Get the specific pixel indices used for this pixel
+    // for (int y{0}; y < img->y_dim; y++) {
+    //     for (int x{0}; x < img->x_dim; x++) {
+    //         float r_val{0}, g_val{0}, b_val{0};
+
+    //         for (int dy{-blur_radius}; dy < blur_radius; dy++) {
+    //             for (int dx{-blur_radius}; dx < blur_radius; dx++) {
+    //                 // Clamping is meant to prevent brightness changes during blur application
+    //                 int ix{std::clamp(x + dx, 0, img->x_dim - 1)};
+    //                 int iy{std::clamp(y + dy, 0, img->y_dim - 1)};
+
+    //                 float weight = gaussian_kernel[(dy + blur_radius) * kernel_size + dx + blur_radius];
+    //                 // int neighbor_idx{((dy + y) * img->x_dim + (dx + x)) * RGB_OFFSET};
+    //                 int idx{(iy * img->x_dim + ix) * RGB_OFFSET};
+
+    //                 r_val += img->data[idx] * weight;
+    //                 g_val += img->data[idx + 1] * weight;
+    //                 b_val += img->data[idx + 2] * weight;
+    //             }
+    //         }
+    //         int res_idx{(y * img->x_dim + x) * RGB_OFFSET};
+    //         res[res_idx] = (unsigned char)std::round((r_val / kernel_sum));
+    //         res[res_idx + 1] = (unsigned char)std::round((g_val / kernel_sum));
+    //         res[res_idx + 2] = (unsigned char)std::round((b_val / kernel_sum));
+    //     }
+    // }
+
+    // img->data = std::move(res);
 }
 
 /**
