@@ -26,7 +26,7 @@ int main(int argc, char **argv) {
 
     std::unordered_map<std::string, ImageOperations> op_map{{"blur", ImageOperations::SIMPLE_BLUR},
                                                             {"g_blur", ImageOperations::GAUSSIAN_BLUR},
-                                                            {"seg", ImageOperations::SEGMENTATION},
+                                                            {"seg", ImageOperations::SOBEL},
                                                             {"gray", ImageOperations::GRAYSCALE}};
 
     // 1. Get all required inputs
@@ -95,7 +95,7 @@ int main(int argc, char **argv) {
     } else if (img->op_type == ImageOperations::GRAYSCALE) {
         std::cout << "\nConverting to grayscale..." << std::endl;
         ImageFilters::grayscale(img.get());
-    } else if (img->op_type == ImageOperations::SEGMENTATION) {
+    } else if (img->op_type == ImageOperations::SOBEL) {
     } else {
         std::cerr << "Unknown image operation selected. Shouldn't get here. Abort.";
         return 1;
