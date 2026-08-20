@@ -107,7 +107,7 @@ int main(int argc, char **argv) {
     auto minutes{std::chrono::duration_cast<std::chrono::minutes>(duration)};
     auto seconds{std::chrono::duration_cast<std::chrono::seconds>(duration - minutes)};
 
-    std::cout << std::setfill('0') << "\nJob runtime:\t\t" << std::setw(2) << minutes << ":" << std::setw(2) << seconds << std::endl;
+    std::cout << std::setfill('0') << "\nJob runtime:\t\t" << std::setw(2) << minutes.count() << ":" << std::setw(2) << seconds.count() << std::endl;
     std::cout << std::endl;
 
     // 5. Write out the modified image in the correct format.

@@ -13,4 +13,5 @@
     "C_Cpp.clang_format_style": "file",
     "C_Cpp.intelliSenseEngine": "default",
     "terminal.integrated.fontSize": 15,
+    "C_Cpp.default.compilerPath": "/usr/bin/clang++-18",
 }
