@@ -5,6 +5,8 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_subdirectory(extern/CLI11)
+add_library(HISPImageProcessing SHARED src/filters.cpp src/image.cpp src/filters_c_api.cpp
+    headers/filters_c_api.hpp)
 add_executable(HISP)
 target_sources(HISP
     PRIVATE

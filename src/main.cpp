@@ -75,8 +75,8 @@ int main(int argc, char **argv) {
     unsigned char *raw_data = stbi_load(img->input_fname.c_str(), &img->x_dim, &img->y_dim, &img->num_channels, 0);
     const int total_bytes{img->x_dim * img->y_dim * img->num_channels};
 
-    img->data.resize(total_bytes);
-    std::memcpy(img->data.data(), raw_data, total_bytes);
+    img->pixelData.resize(total_bytes);
+    std::memcpy(img->pixelData.data(), raw_data, total_bytes);
     free(raw_data);
 
     if (user_blur_rad <= 0) {
@@ -112,9 +112,9 @@ int main(int argc, char **argv) {
 
     // 5. Write out the modified image in the correct format.
     if (ext == "jpg") {
-        stbi_write_jpg(img->output_fname.c_str(), img->x_dim, img->y_dim, img->num_channels, img->data.data(), 100);
+        stbi_write_jpg(img->output_fname.c_str(), img->x_dim, img->y_dim, img->num_channels, img->pixelData.data(), 100);
     } else if (ext == "png") {
-        stbi_write_png(img->output_fname.c_str(), img->x_dim, img->y_dim, img->num_channels, img->data.data(), img->x_dim * img->num_channels);
+        stbi_write_png(img->output_fname.c_str(), img->x_dim, img->y_dim, img->num_channels, img->pixelData.data(), img->x_dim * img->num_channels);
     } else {
         std::cerr << "Unrecognized output image format: " << ext << ". Aborting write." << std::endl;
         return 1;

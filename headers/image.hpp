@@ -8,7 +8,7 @@
 enum class ImageOperations { SIMPLE_BLUR, GAUSSIAN_BLUR, SOBEL, GRAYSCALE };
 class Image {
    public:
-    std::vector<unsigned char> data;
+    std::vector<uint8_t> pixelData;
     int x_dim;
     int y_dim;
     int num_channels;
@@ -18,6 +18,7 @@ class Image {
 
     Image();
     Image(const std::string ifname, const std::string ofname, ImageOperations op);
+    Image(const uint8_t* original_data, int width, int height);
     ~Image();
 };
 
