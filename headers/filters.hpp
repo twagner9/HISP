@@ -9,7 +9,6 @@
 
 namespace ImageFilters {
 
-// TODO: make this gaussian by weighting each pixel's value
 /**
  * @brief Apply a blur to an image.
  * @param img The image the user supplied that will be blurred. It is 2 * blur_radius + 1.
@@ -74,7 +73,7 @@ void gaussian_blur(Image *img, const int &blur_radius) {
         kernel_sum += gaussian_kernel[i];
     }
 
-    // Weight each kernel pixel by the total sum of all pixels in the kernel
+    // Normalize each kernel pixel by dividing by the total sum of all pixels in the kernel
     for (float &weight : gaussian_kernel) {
         weight /= kernel_sum;
     }

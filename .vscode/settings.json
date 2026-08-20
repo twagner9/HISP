@@ -1,0 +1,16 @@
+{
+    "[cpp]": {
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "ms-vscode.cpptools",
+    },
+    "[c]": {
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "ms-vscode.cpptools",
+    },
+    "editor.tabSize": 4,
+    "editor.fontSize": 14,
+    "C_Cpp.formatting": "clangFormat",
+    "C_Cpp.clang_format_style": "file",
+    "C_Cpp.intelliSenseEngine": "default",
+    "terminal.integrated.fontSize": 15,
+}
