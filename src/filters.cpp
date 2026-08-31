@@ -14,29 +14,35 @@ namespace ImageFilters {
 void blur(Image *img, const int &blur_radius) {
     const int NUM_BYTES{img->x_dim * img->y_dim * img->num_channels};
     constexpr int RGB_OFFSET{3};
-    std::vector<unsigned char> res(NUM_BYTES);
+    std::vector<uint8_t> res(NUM_BYTES);
 
-    for (int i = 0; i < NUM_BYTES; i += RGB_OFFSET) {
-        int pixel_idx{i / RGB_OFFSET};
-        int x{pixel_idx % img->x_dim}, y{pixel_idx / img->x_dim};
-        int pixels_summed{0};
-        int r_val{0}, g_val{0}, b_val{0};
+    std::fprintf(stderr, "C++: NUM_BYTES == %i\n", NUM_BYTES);
+    std::fflush(stderr);
 
-        for (int dy = y - blur_radius; dy < y + blur_radius; dy++) {
-            for (int dx = x - blur_radius; dx < x + blur_radius; dx++) {
-                if (dy >= 0 && dx >= 0 && dy < img->y_dim && dx < img->x_dim) {
-                    int neighbor_idx = (dy * img->x_dim + dx) * RGB_OFFSET;
+    for (int y = 0; y < img->y_dim; y++) {
+        for (int x = 0; x < img->x_dim; x++) {
+            int pixel_idx{(y * img->x_dim + x) * RGB_OFFSET};
+            int pixels_summed{0};
+            uint8_t r_val{0}, g_val{0}, b_val{0};
+
+            for (int yy = y - blur_radius; yy <= y + blur_radius; yy++) {
+                for (int xx = x - blur_radius; xx <= y + blur_radius; xx++) {
+                    if (yy < 0 || xx < 0 || yy >= img->y_dim || xx >= img->x_dim) {
+                        continue;
+                    }
+
+                    int neighbor_idx{(yy * img->x_dim + xx) * RGB_OFFSET};
                     r_val += img->pixelData[neighbor_idx];
                     g_val += img->pixelData[neighbor_idx + 1];
                     b_val += img->pixelData[neighbor_idx + 2];
                     ++pixels_summed;
                 }
             }
-        }
-        if (pixels_summed > 0) {
-            res[i] = r_val / pixels_summed;
-            res[i + 1] = g_val / pixels_summed;
-            res[i + 2] = b_val / pixels_summed;
+            if (pixels_summed > 0) {
+                res[pixel_idx] = r_val / pixels_summed;
+                res[pixel_idx + 1] = g_val / pixels_summed;
+                res[pixel_idx + 2] = b_val / pixels_summed;
+            }
         }
     }
 
