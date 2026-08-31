@@ -16,9 +16,6 @@ void blur(Image *img, const int &blur_radius) {
     constexpr int RGB_OFFSET{3};
     std::vector<uint8_t> res(NUM_BYTES);
 
-    std::fprintf(stderr, "C++: NUM_BYTES == %i\n", NUM_BYTES);
-    std::fflush(stderr);
-
     for (int y = 0; y < img->y_dim; y++) {
         for (int x = 0; x < img->x_dim; x++) {
             int pixel_idx{(y * img->x_dim + x) * RGB_OFFSET};
@@ -39,18 +36,9 @@ void blur(Image *img, const int &blur_radius) {
                 }
             }
             if (pixels_summed > 0) {
-                if (x == 2 && y == 2) {
-                    std::fprintf(stderr, "pixels_summed: %i; pixel sums RGB: %i %i %i\n", pixels_summed, r_val, g_val, b_val);
-                    std::fflush(stderr);
-                }
                 res[pixel_idx] = std::ceil((double)r_val / pixels_summed);
                 res[pixel_idx + 1] = std::ceil((double)g_val / pixels_summed);
                 res[pixel_idx + 2] = std::ceil((double)b_val / pixels_summed);
-            }
-
-            if (x == 2 && y == 2) {
-                std::fprintf(stderr, "RGB of central pixel: %i %i %i\n", res[pixel_idx], res[pixel_idx + 1], res[pixel_idx + 2]);
-                std::fflush(stderr);
             }
         }
     }
