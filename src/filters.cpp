@@ -14,34 +14,91 @@ namespace ImageFilters {
 void blur(Image *img, const int &blur_radius) {
     const int NUM_BYTES{img->x_dim * img->y_dim * img->num_channels};
     constexpr int RGB_OFFSET{3};
-    std::vector<uint8_t> res(NUM_BYTES);
+    std::vector<uint8_t> res(NUM_BYTES, 0);
+    const int height = img->y_dim, width = img->x_dim;
 
-    for (int y = 0; y < img->y_dim; y++) {
-        for (int x = 0; x < img->x_dim; x++) {
-            int pixel_idx{(y * img->x_dim + x) * RGB_OFFSET};
+    std::vector<float> horizontal_pass(NUM_BYTES, 0);
+    for (int y{0}; y < height; y++) {
+        for (int x{0}; x < width; x++) {
+            int pixel_idx{(y * width + x) * RGB_OFFSET};
             int pixels_summed{0};
-            int r_val{0}, g_val{0}, b_val{0};
+            int r_sum{0}, g_sum{0}, b_sum{0};
 
-            for (int yy = y - blur_radius; yy <= y + blur_radius; yy++) {
-                for (int xx = x - blur_radius; xx <= y + blur_radius; xx++) {
-                    if (yy < 0 || xx < 0 || yy >= img->y_dim || xx >= img->x_dim) {
-                        continue;
-                    }
+            for (int k{-blur_radius}; k < blur_radius; ++k) {
+                int img_x = x + k;
 
-                    int neighbor_idx{(yy * img->x_dim + xx) * RGB_OFFSET};
-                    r_val += img->pixelData[neighbor_idx];
-                    g_val += img->pixelData[neighbor_idx + 1];
-                    b_val += img->pixelData[neighbor_idx + 2];
-                    ++pixels_summed;
-                }
-            }
-            if (pixels_summed > 0) {
-                res[pixel_idx] = std::ceil((double)r_val / pixels_summed);
-                res[pixel_idx + 1] = std::ceil((double)g_val / pixels_summed);
-                res[pixel_idx + 2] = std::ceil((double)b_val / pixels_summed);
+                // No padding, so make sure that the img_x isn't exceeding bounds.
+                if (img_x < 0) img_x = 0;
+                if (img_x >= width) img_x = width - 1;
+
+                // Calculate index for the shifting x
+                int idx = (y * width + img_x) * RGB_OFFSET;
+
+                r_sum += img->pixelData[idx];
+                g_sum += img->pixelData[idx + 1];
+                b_sum += img->pixelData[idx + 2];
             }
         }
     }
+
+    for (int y{0}; y < height; y++) {
+        for (int x{0}; x < width; x++) {
+            float r_sum{0.0f}, g_sum{0.0f}, b_sum{0.0f};
+
+            for (int k{-blur_radius}; k < blur_radius; k++) {
+                int img_y = y + k;
+
+                // No padding, so make sure that the img_y isn't exceeding bounds.
+                if (img_y < 0) img_y = 0;
+                if (img_y >= img->y_dim) img_y = height - 1;
+
+                // Calculate index for shifting y
+                int idx{(img_y * width + x) * RGB_OFFSET};
+
+                // Mulitply the intermediate by the vertical form of the kernel (identical to horizontal, just traveling up and down rows instead of
+                // across them)
+                r_sum += horizontal_pass[idx];
+                g_sum += horizontal_pass[idx + 1];
+                b_sum += horizontal_pass[idx + 2];
+            }
+
+            r_sum = std::ceil(r_sum / (blur_radius * 2));
+            g_sum = std::ceil(g_sum / (blur_radius * 2));
+            b_sum = std::ceil(b_sum / (blur_radius * 2));
+            // Out index is calculated based on the original for loop (not shifting by kernel here) and clamped to fit within unsigned char
+            int out_idx = (y * img->x_dim + x) * RGB_OFFSET;
+            res[out_idx] = static_cast<unsigned char>(std::clamp(r_sum, 0.0f, 255.0f));
+            res[out_idx + 1] = static_cast<unsigned char>(std::clamp(g_sum, 0.0f, 255.0f));
+            res[out_idx + 2] = static_cast<unsigned char>(std::clamp(b_sum, 0.0f, 255.0f));
+        }
+    }
+
+    // for (int y = 0; y < img->y_dim; y++) {
+    //     for (int x = 0; x < img->x_dim; x++) {
+    //         int pixel_idx{(y * img->x_dim + x) * RGB_OFFSET};
+    //         int pixels_summed{0};
+    //         int r_val{0}, g_val{0}, b_val{0};
+
+    //         for (int yy = y - blur_radius; yy <= y + blur_radius; yy++) {
+    //             for (int xx = x - blur_radius; xx <= y + blur_radius; xx++) {
+    //                 if (yy < 0 || xx < 0 || yy >= img->y_dim || xx >= img->x_dim) {
+    //                     continue;
+    //                 }
+
+    //                 int neighbor_idx{(yy * img->x_dim + xx) * RGB_OFFSET};
+    //                 r_val += img->pixelData[neighbor_idx];
+    //                 g_val += img->pixelData[neighbor_idx + 1];
+    //                 b_val += img->pixelData[neighbor_idx + 2];
+    //                 ++pixels_summed;
+    //             }
+    //         }
+    //         if (pixels_summed > 0) {
+    //             res[pixel_idx] = std::ceil((double)r_val / pixels_summed);
+    //             res[pixel_idx + 1] = std::ceil((double)g_val / pixels_summed);
+    //             res[pixel_idx + 2] = std::ceil((double)b_val / pixels_summed);
+    //         }
+    //     }
+    // }
 
     // crucial time saver -- no longer need the res vector, so tell compiler to
     // just reclaim it and do a constant time swap.
