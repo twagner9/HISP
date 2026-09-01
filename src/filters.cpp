@@ -137,6 +137,9 @@ void gaussian_blur(Image *img, const int &blur_radius) {
                 b_sum += horizontal_pass[idx + 2] * gaussian_kernel[k];
             }
 
+            r_sum = std::ceil(r_sum);
+            g_sum = std::ceil(g_sum);
+            b_sum = std::ceil(b_sum);
             // Out index is calculated based on the original for loop (not shifting by kernel here) and clamped to fit within unsigned char
             int out_idx = (y * img->x_dim + x) * RGB_OFFSET;
             output[out_idx] = static_cast<unsigned char>(std::clamp(r_sum, 0.0f, 255.0f));
@@ -202,7 +205,7 @@ void grayscale(Image *img) {
 
     for (int i = 0; i < NUM_BYTES; i += RGB_OFFSET) {
         int pixel_idx = i / RGB_OFFSET;
-        float avg = (img->pixelData[i] + img->pixelData[i + 1] + img->pixelData[i + 2]) / 3;
+        float avg = std::ceil(((int)img->pixelData[i] + (int)img->pixelData[i + 1] + (int)img->pixelData[i + 2]) / 3.0f);
         img->pixelData[i] = static_cast<unsigned char>(avg);
         img->pixelData[i + 1] = static_cast<unsigned char>(avg);
         img->pixelData[i + 2] = static_cast<unsigned char>(avg);
