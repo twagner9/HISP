@@ -13,18 +13,18 @@ namespace ImageFilters {
  */
 void blur(Image *img, const int &blur_radius) {
     const int NUM_BYTES{img->x_dim * img->y_dim * img->num_channels};
+    const int height{img->y_dim}, width{img->x_dim};
+    const int kernel_size{blur_radius * 2 + 1};
     constexpr int RGB_OFFSET{3};
-    std::vector<uint8_t> res(NUM_BYTES, 0);
-    const int height = img->y_dim, width = img->x_dim;
 
+    std::vector<uint8_t> res(NUM_BYTES, 0);
     std::vector<float> horizontal_pass(NUM_BYTES, 0);
     for (int y{0}; y < height; y++) {
         for (int x{0}; x < width; x++) {
-            int pixel_idx{(y * width + x) * RGB_OFFSET};
-            int pixels_summed{0};
+            const long pixel_idx{(y * width + x) * RGB_OFFSET};
             int r_sum{0}, g_sum{0}, b_sum{0};
 
-            for (int k{-blur_radius}; k < blur_radius; ++k) {
+            for (int k{-blur_radius}; k <= blur_radius; ++k) {
                 int img_x = x + k;
 
                 // No padding, so make sure that the img_x isn't exceeding bounds.
@@ -32,20 +32,24 @@ void blur(Image *img, const int &blur_radius) {
                 if (img_x >= width) img_x = width - 1;
 
                 // Calculate index for the shifting x
-                int idx = (y * width + img_x) * RGB_OFFSET;
-
+                int idx = {(y * width + img_x) * RGB_OFFSET};
                 r_sum += img->pixelData[idx];
                 g_sum += img->pixelData[idx + 1];
                 b_sum += img->pixelData[idx + 2];
             }
+
+            horizontal_pass[pixel_idx] = static_cast<float>(r_sum) / kernel_size;
+            horizontal_pass[pixel_idx + 1] = static_cast<float>(g_sum) / kernel_size;
+            horizontal_pass[pixel_idx + 2] = static_cast<float>(b_sum) / kernel_size;
         }
     }
 
     for (int y{0}; y < height; y++) {
         for (int x{0}; x < width; x++) {
+            const long pixel_idx{(y * width + x) * RGB_OFFSET};
             float r_sum{0.0f}, g_sum{0.0f}, b_sum{0.0f};
 
-            for (int k{-blur_radius}; k < blur_radius; k++) {
+            for (int k{-blur_radius}; k <= blur_radius; k++) {
                 int img_y = y + k;
 
                 // No padding, so make sure that the img_y isn't exceeding bounds.
@@ -54,22 +58,22 @@ void blur(Image *img, const int &blur_radius) {
 
                 // Calculate index for shifting y
                 int idx{(img_y * width + x) * RGB_OFFSET};
-
-                // Mulitply the intermediate by the vertical form of the kernel (identical to horizontal, just traveling up and down rows instead of
-                // across them)
                 r_sum += horizontal_pass[idx];
                 g_sum += horizontal_pass[idx + 1];
                 b_sum += horizontal_pass[idx + 2];
+
+                // Mulitply the intermediate by the vertical form of the kernel (identical to horizontal, just traveling up and down rows instead of
+                // across them)
             }
 
-            r_sum = std::ceil(r_sum / (blur_radius * 2));
-            g_sum = std::ceil(g_sum / (blur_radius * 2));
-            b_sum = std::ceil(b_sum / (blur_radius * 2));
+            r_sum = (uint8_t)std::ceil(r_sum / (float)kernel_size);
+            g_sum = (uint8_t)std::ceil(g_sum / (float)kernel_size);
+            b_sum = (uint8_t)std::ceil(b_sum / (float)kernel_size);
+
             // Out index is calculated based on the original for loop (not shifting by kernel here) and clamped to fit within unsigned char
-            int out_idx = (y * img->x_dim + x) * RGB_OFFSET;
-            res[out_idx] = static_cast<unsigned char>(std::clamp(r_sum, 0.0f, 255.0f));
-            res[out_idx + 1] = static_cast<unsigned char>(std::clamp(g_sum, 0.0f, 255.0f));
-            res[out_idx + 2] = static_cast<unsigned char>(std::clamp(b_sum, 0.0f, 255.0f));
+            res[pixel_idx] = static_cast<uint8_t>(std::clamp(r_sum, 0.0f, 255.0f));
+            res[pixel_idx + 1] = static_cast<uint8_t>(std::clamp(g_sum, 0.0f, 255.0f));
+            res[pixel_idx + 2] = static_cast<uint8_t>(std::clamp(b_sum, 0.0f, 255.0f));
         }
     }
 
