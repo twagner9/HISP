@@ -23,13 +23,16 @@ void blur(Image *img, const int &blur_radius) {
         for (int x{0}; x < width; x++) {
             const long pixel_idx{(y * width + x) * RGB_OFFSET};
             int r_sum{0}, g_sum{0}, b_sum{0};
+            int pixels_summed = kernel_size;
 
             for (int k{-blur_radius}; k <= blur_radius; ++k) {
                 int img_x = x + k;
 
                 // No padding, so make sure that the img_x isn't exceeding bounds.
-                if (img_x < 0) img_x = 0;
-                if (img_x >= width) img_x = width - 1;
+                if (img_x < 0 || img_x >= width) {
+                    pixels_summed--;
+                    continue;
+                }
 
                 // Calculate index for the shifting x
                 int idx = {(y * width + img_x) * RGB_OFFSET};
@@ -38,9 +41,9 @@ void blur(Image *img, const int &blur_radius) {
                 b_sum += img->pixelData[idx + 2];
             }
 
-            horizontal_pass[pixel_idx] = static_cast<float>(r_sum) / kernel_size;
-            horizontal_pass[pixel_idx + 1] = static_cast<float>(g_sum) / kernel_size;
-            horizontal_pass[pixel_idx + 2] = static_cast<float>(b_sum) / kernel_size;
+            horizontal_pass[pixel_idx] = static_cast<float>(r_sum) / pixels_summed;
+            horizontal_pass[pixel_idx + 1] = static_cast<float>(g_sum) / pixels_summed;
+            horizontal_pass[pixel_idx + 2] = static_cast<float>(b_sum) / pixels_summed;
         }
     }
 
@@ -48,13 +51,16 @@ void blur(Image *img, const int &blur_radius) {
         for (int x{0}; x < width; x++) {
             const long pixel_idx{(y * width + x) * RGB_OFFSET};
             float r_sum{0.0f}, g_sum{0.0f}, b_sum{0.0f};
+            int pixels_summed = kernel_size;
 
             for (int k{-blur_radius}; k <= blur_radius; k++) {
                 int img_y = y + k;
 
                 // No padding, so make sure that the img_y isn't exceeding bounds.
-                if (img_y < 0) img_y = 0;
-                if (img_y >= img->y_dim) img_y = height - 1;
+                if (img_y < 0 || img_y >= height) {
+                    pixels_summed--;
+                    continue;
+                }
 
                 // Calculate index for shifting y
                 int idx{(img_y * width + x) * RGB_OFFSET};
@@ -66,9 +72,9 @@ void blur(Image *img, const int &blur_radius) {
                 // across them)
             }
 
-            r_sum = (uint8_t)std::ceil(r_sum / (float)kernel_size);
-            g_sum = (uint8_t)std::ceil(g_sum / (float)kernel_size);
-            b_sum = (uint8_t)std::ceil(b_sum / (float)kernel_size);
+            r_sum = std::ceil(static_cast<float>(r_sum) / pixels_summed);
+            g_sum = std::ceil(static_cast<float>(g_sum) / pixels_summed);
+            b_sum = std::ceil(static_cast<float>(b_sum) / pixels_summed);
 
             // Out index is calculated based on the original for loop (not shifting by kernel here) and clamped to fit within unsigned char
             res[pixel_idx] = static_cast<uint8_t>(std::clamp(r_sum, 0.0f, 255.0f));
