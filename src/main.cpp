@@ -71,12 +71,12 @@ int main(int argc, char **argv) {
     std::cout << "Image operation: " << op_string << std::endl;
 
     // 3. Create the Image object that will hold the required data, and copy the pixel data to it.
-    std::unique_ptr<Image> img = std::make_unique<Image>(img_ifname, img_ofname, selected_op);
-    unsigned char *raw_data = stbi_load(img->input_fname.c_str(), &img->x_dim, &img->y_dim, &img->num_channels, 0);
-    const int total_bytes{img->x_dim * img->y_dim * img->num_channels};
+    Image img(img_ifname, img_ofname, selected_op);
+    unsigned char *raw_data = stbi_load(img.input_fname.c_str(), &img.x_dim, &img.y_dim, &img.num_channels, 0);
+    const int total_bytes{img.x_dim * img.y_dim * img.num_channels};
 
-    img->pixelData.resize(total_bytes);
-    std::memcpy(img->pixelData.data(), raw_data, total_bytes);
+    img.pixel_data.resize(total_bytes);
+    std::memcpy(img.pixel_data.data(), raw_data, total_bytes);
     free(raw_data);
 
     if (user_blur_rad <= 0) {
@@ -86,16 +86,16 @@ int main(int argc, char **argv) {
     // TODO: Add basic profiling to view how long the operation takes -- this will come in handy when adding multithreading
     // 4. Apply user selected image operation.
     auto time_start{std::chrono::high_resolution_clock::now()};
-    if (img->op_type == ImageOperations::SIMPLE_BLUR) {
+    if (img.op_type == ImageOperations::SIMPLE_BLUR) {
         std::cout << "\nApplying blur..." << std::endl;
-        ImageFilters::blur(img.get(), user_blur_rad);
-    } else if (img->op_type == ImageOperations::GAUSSIAN_BLUR) {
+        ImageFilters::blur(img, user_blur_rad);
+    } else if (img.op_type == ImageOperations::GAUSSIAN_BLUR) {
         std::cout << "\nApplying Gaussian Blur..." << std::endl;
-        ImageFilters::gaussian_blur(img.get(), user_blur_rad);
-    } else if (img->op_type == ImageOperations::GRAYSCALE) {
+        ImageFilters::gaussian_blur(img, user_blur_rad);
+    } else if (img.op_type == ImageOperations::GRAYSCALE) {
         std::cout << "\nConverting to grayscale..." << std::endl;
-        ImageFilters::grayscale(img.get());
-    } else if (img->op_type == ImageOperations::SOBEL) {
+        ImageFilters::grayscale(img);
+    } else if (img.op_type == ImageOperations::SOBEL) {
     } else {
         std::cerr << "Unknown image operation selected. Shouldn't get here. Abort.";
         return 1;
@@ -112,15 +112,15 @@ int main(int argc, char **argv) {
 
     // 5. Write out the modified image in the correct format.
     if (ext == "jpg") {
-        stbi_write_jpg(img->output_fname.c_str(), img->x_dim, img->y_dim, img->num_channels, img->pixelData.data(), 100);
+        stbi_write_jpg(img.output_fname.c_str(), img.x_dim, img.y_dim, img.num_channels, img.pixel_data.data(), 100);
     } else if (ext == "png") {
-        stbi_write_png(img->output_fname.c_str(), img->x_dim, img->y_dim, img->num_channels, img->pixelData.data(), img->x_dim * img->num_channels);
+        stbi_write_png(img.output_fname.c_str(), img.x_dim, img.y_dim, img.num_channels, img.pixel_data.data(), img.x_dim * img.num_channels);
     } else {
         std::cerr << "Unrecognized output image format: " << ext << ". Aborting write." << std::endl;
         return 1;
     }
 
-    std::cout << "Completed operation. Image written to " << img->output_fname << std::endl;
+    std::cout << "Completed operation. Image written to " << img.output_fname << std::endl;
 
     return 0;
 }

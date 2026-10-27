@@ -11,9 +11,9 @@ namespace ImageFilters {
  * @param blur_radius How large the kernel will be when performing the blur
  * operation
  */
-void blur(Image *img, const int &blur_radius) {
-    const int NUM_BYTES{img->x_dim * img->y_dim * img->num_channels};
-    const int height{img->y_dim}, width{img->x_dim};
+void blur(Image &img, const int &blur_radius) {
+    const int NUM_BYTES{img.x_dim * img.y_dim * img.num_channels};
+    const int height{img.y_dim}, width{img.x_dim};
     const int kernel_size{blur_radius * 2 + 1};
     constexpr int RGB_OFFSET{3};
 
@@ -36,9 +36,9 @@ void blur(Image *img, const int &blur_radius) {
 
                 // Calculate index for the shifting x
                 int idx = {(y * width + img_x) * RGB_OFFSET};
-                r_sum += img->pixelData[idx];
-                g_sum += img->pixelData[idx + 1];
-                b_sum += img->pixelData[idx + 2];
+                r_sum += img.pixel_data[idx];
+                g_sum += img.pixel_data[idx + 1];
+                b_sum += img.pixel_data[idx + 2];
             }
 
             horizontal_pass[pixel_idx] = static_cast<float>(r_sum) / pixels_summed;
@@ -83,7 +83,7 @@ void blur(Image *img, const int &blur_radius) {
         }
     }
 
-    img->pixelData = std::move(res);
+    img.pixel_data = std::move(res);
 }
 
 /**
@@ -92,10 +92,10 @@ void blur(Image *img, const int &blur_radius) {
  * @param img The image to be blurred.
  * @param blur_radius The radius of the kernel used during blurring.
  */
-void gaussian_blur(Image *img, const int &blur_radius) {
-    // Basic setup: determine number of bytes contained in this image, since img->data is an unsigned char* array
+void gaussian_blur(Image &img, const int &blur_radius) {
+    // Basic setup: determine number of bytes contained in this image, since img.data is an unsigned char* array
     // containing 3 channels. result array should be the same size as the input.
-    const int NUM_BYTES{img->x_dim * img->y_dim * img->num_channels};
+    const int NUM_BYTES{img.x_dim * img.y_dim * img.num_channels};
     constexpr int RGB_OFFSET{3};
     float sigma{blur_radius / 2.0f};
 
@@ -120,8 +120,8 @@ void gaussian_blur(Image *img, const int &blur_radius) {
 
     // Loop over the img data horizontally first; this will be stored in the horizontal_pass intermediate, which means it contains all of the
     // horizontal blurring pixel values
-    for (int y{0}; y < img->y_dim; y++) {
-        for (int x{0}; x < img->x_dim; x++) {
+    for (int y{0}; y < img.y_dim; y++) {
+        for (int x{0}; x < img.x_dim; x++) {
             float r_sum{0.0f};
             float g_sum{0.0f};
             float b_sum{0.0f};
@@ -132,18 +132,18 @@ void gaussian_blur(Image *img, const int &blur_radius) {
 
                 // No padding, so make sure that the img_x isn't exceeding bounds.
                 if (img_x < 0) img_x = 0;
-                if (img_x >= img->x_dim) img_x = img->x_dim - 1;
+                if (img_x >= img.x_dim) img_x = img.x_dim - 1;
 
                 // Calculate index for the shifting x
-                int idx = (y * img->x_dim + img_x) * RGB_OFFSET;
+                int idx = (y * img.x_dim + img_x) * RGB_OFFSET;
 
-                r_sum += img->pixelData[idx] * gaussian_kernel[k];
-                g_sum += img->pixelData[idx + 1] * gaussian_kernel[k];
-                b_sum += img->pixelData[idx + 2] * gaussian_kernel[k];
+                r_sum += img.pixel_data[idx] * gaussian_kernel[k];
+                g_sum += img.pixel_data[idx + 1] * gaussian_kernel[k];
+                b_sum += img.pixel_data[idx + 2] * gaussian_kernel[k];
             }
 
             // Out index is calculated based on the original for loop (not shifting by kernel here) and clamped to fit within unsigned char
-            int out_idx = (y * img->x_dim + x) * RGB_OFFSET;
+            int out_idx = (y * img.x_dim + x) * RGB_OFFSET;
             horizontal_pass[out_idx] = r_sum;
             horizontal_pass[out_idx + 1] = g_sum;
             horizontal_pass[out_idx + 2] = b_sum;
@@ -152,8 +152,8 @@ void gaussian_blur(Image *img, const int &blur_radius) {
 
     // Have the horizontal blur values; now apply the vertical blur to the existing horizontal ones, and copy to output
     std::vector<unsigned char> output(NUM_BYTES, 0.0f);
-    for (int y{0}; y < img->y_dim; y++) {
-        for (int x{0}; x < img->x_dim; x++) {
+    for (int y{0}; y < img.y_dim; y++) {
+        for (int x{0}; x < img.x_dim; x++) {
             float r_sum{0.0f};
             float g_sum{0.0f};
             float b_sum{0.0f};
@@ -163,10 +163,10 @@ void gaussian_blur(Image *img, const int &blur_radius) {
 
                 // No padding, so make sure that the img_y isn't exceeding bounds.
                 if (img_y < 0) img_y = 0;
-                if (img_y >= img->y_dim) img_y = img->y_dim - 1;
+                if (img_y >= img.y_dim) img_y = img.y_dim - 1;
 
                 // Calculate index for shifting y
-                int idx = (img_y * img->x_dim + x) * RGB_OFFSET;
+                int idx = (img_y * img.x_dim + x) * RGB_OFFSET;
 
                 // Mulitply the intermediate by the vertical form of the kernel (identical to horizontal, just traveling up and down rows instead of
                 // across them)
@@ -179,14 +179,14 @@ void gaussian_blur(Image *img, const int &blur_radius) {
             g_sum = std::ceil(g_sum);
             b_sum = std::ceil(b_sum);
             // Out index is calculated based on the original for loop (not shifting by kernel here) and clamped to fit within unsigned char
-            int out_idx = (y * img->x_dim + x) * RGB_OFFSET;
+            int out_idx = (y * img.x_dim + x) * RGB_OFFSET;
             output[out_idx] = static_cast<unsigned char>(std::clamp(r_sum, 0.0f, 255.0f));
             output[out_idx + 1] = static_cast<unsigned char>(std::clamp(g_sum, 0.0f, 255.0f));
             output[out_idx + 2] = static_cast<unsigned char>(std::clamp(b_sum, 0.0f, 255.0f));
         }
     }
 
-    img->pixelData = std::move(output);
+    img.pixel_data = std::move(output);
 }
 
 /**
@@ -194,16 +194,29 @@ void gaussian_blur(Image *img, const int &blur_radius) {
  *
  * @param img The image to converted to grayscale.
  */
-void grayscale(Image *img) {
-    const int NUM_BYTES = img->x_dim * img->y_dim * img->num_channels;
+void grayscale(Image &img) {
+    const int NUM_BYTES = img.x_dim * img.y_dim * img.num_channels;
     int RGB_OFFSET = 3;
 
     for (int i = 0; i < NUM_BYTES; i += RGB_OFFSET) {
         int pixel_idx = i / RGB_OFFSET;
-        float avg = std::ceil(((int)img->pixelData[i] + (int)img->pixelData[i + 1] + (int)img->pixelData[i + 2]) / 3.0f);
-        img->pixelData[i] = static_cast<unsigned char>(avg);
-        img->pixelData[i + 1] = static_cast<unsigned char>(avg);
-        img->pixelData[i + 2] = static_cast<unsigned char>(avg);
+        float avg = std::ceil(((int)img.pixel_data[i] + (int)img.pixel_data[i + 1] + (int)img.pixel_data[i + 2]) / 3.0f);
+        img.pixel_data[i] = static_cast<unsigned char>(avg);
+        img.pixel_data[i + 1] = static_cast<unsigned char>(avg);
+        img.pixel_data[i + 2] = static_cast<unsigned char>(avg);
+    }
+}
+
+void adjust_brightness(Image &img, int delta) {
+    const int NUM_BYTES = img.x_dim * img.y_dim * img.num_channels;
+    const int RGB_OFFSET = 3;
+    delta = std::clamp(delta, -255, 255);
+
+    // Loop pixels, but also clamp to ensure that the value is not greater or less than the actual min/max possible
+    for (int pixel = 0; pixel < NUM_BYTES; pixel += RGB_OFFSET) {
+        img.pixel_data[pixel] = static_cast<unsigned char>(std::clamp(img.pixel_data[pixel] + delta, 0, 255));
+        img.pixel_data[pixel + 1] = static_cast<unsigned char>(std::clamp(img.pixel_data[pixel + 1] + delta, 0, 255));
+        img.pixel_data[pixel + 2] = static_cast<unsigned char>(std::clamp(img.pixel_data[pixel + 2] + delta, 0, 255));
     }
 }
 }  // namespace ImageFilters

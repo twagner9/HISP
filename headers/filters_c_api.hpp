@@ -16,6 +16,8 @@ HISP_API int image_grayscale(const uint8_t* input, uint8_t* output, int width, i
 HISP_API int image_blur(const uint8_t* input, uint8_t* output, int width, int height, int blur_radius);
 
 HISP_API int image_gaussian_blur(const uint8_t* input, uint8_t* output, int width, int height, int blur_radius);
+
+HISP_API int image_adjust_brightness(const uint8_t* input, uint8_t* output, int width, int height, int delta);
 }
 
 #endif
