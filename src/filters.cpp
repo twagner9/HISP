@@ -83,35 +83,6 @@ void blur(Image *img, const int &blur_radius) {
         }
     }
 
-    // for (int y = 0; y < img->y_dim; y++) {
-    //     for (int x = 0; x < img->x_dim; x++) {
-    //         int pixel_idx{(y * img->x_dim + x) * RGB_OFFSET};
-    //         int pixels_summed{0};
-    //         int r_val{0}, g_val{0}, b_val{0};
-
-    //         for (int yy = y - blur_radius; yy <= y + blur_radius; yy++) {
-    //             for (int xx = x - blur_radius; xx <= y + blur_radius; xx++) {
-    //                 if (yy < 0 || xx < 0 || yy >= img->y_dim || xx >= img->x_dim) {
-    //                     continue;
-    //                 }
-
-    //                 int neighbor_idx{(yy * img->x_dim + xx) * RGB_OFFSET};
-    //                 r_val += img->pixelData[neighbor_idx];
-    //                 g_val += img->pixelData[neighbor_idx + 1];
-    //                 b_val += img->pixelData[neighbor_idx + 2];
-    //                 ++pixels_summed;
-    //             }
-    //         }
-    //         if (pixels_summed > 0) {
-    //             res[pixel_idx] = std::ceil((double)r_val / pixels_summed);
-    //             res[pixel_idx + 1] = std::ceil((double)g_val / pixels_summed);
-    //             res[pixel_idx + 2] = std::ceil((double)b_val / pixels_summed);
-    //         }
-    //     }
-    // }
-
-    // crucial time saver -- no longer need the res vector, so tell compiler to
-    // just reclaim it and do a constant time swap.
     img->pixelData = std::move(res);
 }
 
@@ -216,49 +187,6 @@ void gaussian_blur(Image *img, const int &blur_radius) {
     }
 
     img->pixelData = std::move(output);
-
-    // mathematical operations being performed.
-    // 1. Generate the kernel. Pre-made kernel will be applied as needed across all
-
-    // for (int ky{-blur_radius}; ky <= blur_radius; ky++) {
-    //     for (int kx{-blur_radius}; kx <= blur_radius; kx++) {
-    //         float weight{std::exp(-(ky * ky + kx * kx) / (2 * sigma * sigma))};
-    //         gaussian_kernel[(ky + blur_radius) * kernel_size + (kx + blur_radius)] = weight;
-    //         kernel_sum += weight;
-    //     }
-    // }
-
-    // // 2. Loop the input/output
-    // // (NUM_BYTES / 3) * (blur_radius * 2 + 1)^2 iterations...this is pretty expensive
-
-    // // 3. Get the specific pixel indices used for this pixel
-    // for (int y{0}; y < img->y_dim; y++) {
-    //     for (int x{0}; x < img->x_dim; x++) {
-    //         float r_val{0}, g_val{0}, b_val{0};
-
-    //         for (int dy{-blur_radius}; dy < blur_radius; dy++) {
-    //             for (int dx{-blur_radius}; dx < blur_radius; dx++) {
-    //                 // Clamping is meant to prevent brightness changes during blur application
-    //                 int ix{std::clamp(x + dx, 0, img->x_dim - 1)};
-    //                 int iy{std::clamp(y + dy, 0, img->y_dim - 1)};
-
-    //                 float weight = gaussian_kernel[(dy + blur_radius) * kernel_size + dx + blur_radius];
-    //                 // int neighbor_idx{((dy + y) * img->x_dim + (dx + x)) * RGB_OFFSET};
-    //                 int idx{(iy * img->x_dim + ix) * RGB_OFFSET};
-
-    //                 r_val += img->data[idx] * weight;
-    //                 g_val += img->data[idx + 1] * weight;
-    //                 b_val += img->data[idx + 2] * weight;
-    //             }
-    //         }
-    //         int res_idx{(y * img->x_dim + x) * RGB_OFFSET};
-    //         res[res_idx] = (unsigned char)std::round((r_val / kernel_sum));
-    //         res[res_idx + 1] = (unsigned char)std::round((g_val / kernel_sum));
-    //         res[res_idx + 2] = (unsigned char)std::round((b_val / kernel_sum));
-    //     }
-    // }
-
-    // img->data = std::move(res);
 }
 
 /**
