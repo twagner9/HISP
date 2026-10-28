@@ -76,4 +76,25 @@ HISP_API int image_adjust_brightness(const uint8_t* input, uint8_t* output, int 
 
     return 0;
 }
+
+HISP_API int image_simple_threshold(const uint8_t* input, uint8_t* output, int width, int height, int threshold) {
+    if (!input || !output) {
+        return 1;
+    }
+
+    if (width <= 0 || height <= 0) {
+        return 2;
+    }
+
+    if (threshold < 0 || threshold > 255) {
+        return 3;
+    }
+
+    constexpr int NUM_CHANNELS = 3;
+    Image img(input, width, height);
+    ImageFilters::simple_threshold(img, threshold);
+    std::memcpy(output, img.pixel_data.data(), static_cast<size_t>(width) * height * NUM_CHANNELS * sizeof(uint8_t));   
+    
+    return 0;
+}
 }

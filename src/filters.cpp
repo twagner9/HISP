@@ -219,4 +219,21 @@ void adjust_brightness(Image &img, int delta) {
         img.pixel_data[pixel + 2] = static_cast<unsigned char>(std::clamp(img.pixel_data[pixel + 2] + delta, 0, 255));
     }
 }
+
+void simple_threshold(Image& img, int threshold) {
+    // Simple thresholding will only work with a single value per pixel;
+    // so convert to grayscale so that each pixel will be properly displayed as black or white
+    grayscale(img);
+    const int NUM_BYTES = img.x_dim * img.y_dim * img.num_channels;
+    const int RGB_OFFSET = 3;
+    constexpr int MAX_VALUE = 255;
+    constexpr int MIN_VALUE = 0;
+
+    for (int pixel = 0; pixel < NUM_BYTES; pixel += 3) {
+        uint8_t new_val = (img.pixel_data[pixel] >= threshold) ? MAX_VALUE : MIN_VALUE;
+        img.pixel_data[pixel] = new_val;
+        img.pixel_data[pixel + 1] = new_val;
+        img.pixel_data[pixel + 2] = new_val;
+    }
+}
 }  // namespace ImageFilters
