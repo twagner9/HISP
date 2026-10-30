@@ -14,4 +14,9 @@
     "C_Cpp.intelliSenseEngine": "default",
     "terminal.integrated.fontSize": 15,
     "C_Cpp.default.compilerPath": "/usr/bin/clang++-18",
+    "C_Cpp.default.includePath": [
+        "/usr/include",
+        "/usr/local/include",
+        "${workspaceRoot}"
+    ]
 }
