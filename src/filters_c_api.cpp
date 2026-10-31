@@ -34,8 +34,6 @@ HISP_API int image_blur(const uint8_t* input, uint8_t* output, int width, int he
 
     constexpr int NUM_CHANNELS = 3;
     Image img(input, width, height);
-    std::fprintf(stderr, "About to execute image_blur\n");
-    std::fflush(stderr);
     ImageFilters::blur(img, blur_radius);
     std::memcpy(output, img.pixel_data.data(), static_cast<size_t>(width) * height * NUM_CHANNELS * sizeof(uint8_t));
     return 0;

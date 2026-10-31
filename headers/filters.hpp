@@ -10,7 +10,7 @@ void blur(Image& img, const int& blur_radius);
 void gaussian_blur(Image& img, const int& blur_radius);
 void grayscale(Image& img);
 void adjust_brightness(Image& img, int delta);
-void simple_threshold(Image& img, int threshold);
+void simple_threshold(Image& img, const int& threshold);
 }  // namespace ImageFilters
 }
 #endif
