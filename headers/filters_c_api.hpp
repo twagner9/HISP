@@ -4,7 +4,7 @@
 #include <cstdint>
 
 #if defined(_WIN32)
-#define API __declspec(dllexport)
+#define HISP_API __declspec(dllexport)
 #else
 #define HISP_API
 #endif

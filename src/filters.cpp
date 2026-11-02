@@ -213,7 +213,7 @@ void adjust_brightness(Image &img, int delta) {
     delta = std::clamp(delta, -255, 255);
 
     // Loop pixels, but also clamp to ensure that the value is not greater or less than the actual min/max possible
-    for (int pixel = 0; pixel < NUM_BYTES; pixel += RGB_OFFSET) {
+    for (int pixel{0}; pixel < NUM_BYTES; pixel += RGB_OFFSET) {
         img.pixel_data[pixel] = static_cast<unsigned char>(std::clamp(img.pixel_data[pixel] + delta, 0, 255));
         img.pixel_data[pixel + 1] = static_cast<unsigned char>(std::clamp(img.pixel_data[pixel + 1] + delta, 0, 255));
         img.pixel_data[pixel + 2] = static_cast<unsigned char>(std::clamp(img.pixel_data[pixel + 2] + delta, 0, 255));
@@ -226,11 +226,11 @@ void simple_threshold(Image& img, const int& threshold) {
     grayscale(img);
     const int NUM_BYTES = img.x_dim * img.y_dim * img.num_channels;
     constexpr int RGB_OFFSET = 3;
-    constexpr int MAX_VALUE = 255;
-    constexpr int MIN_VALUE = 0;
+    constexpr uint8_t MAX_VALUE = 255;
+    constexpr uint8_t MIN_VALUE = 0;
 
-    for (int pixel = 0; pixel < NUM_BYTES; pixel += RGB_OFFSET) {
-        uint8_t new_val = (img.pixel_data[pixel] >= threshold) ? MAX_VALUE : MIN_VALUE;
+    for (int pixel{0}; pixel < NUM_BYTES; pixel += RGB_OFFSET) {
+        uint8_t new_val{(img.pixel_data[pixel] >= threshold) ? MAX_VALUE : MIN_VALUE};
         img.pixel_data[pixel] = new_val;
         img.pixel_data[pixel + 1] = new_val;
         img.pixel_data[pixel + 2] = new_val;

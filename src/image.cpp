@@ -9,8 +9,7 @@ Image::Image(const std::string in_fname, const std::string ofname, ImageOperatio
 
 Image::Image(const uint8_t* original_data, int width, int height) : x_dim(width), y_dim(height), num_channels(3) {
     const size_t NUM_VALUES = width * height * num_channels;
-    pixel_data.reserve(NUM_VALUES);
-    std::memcpy(pixel_data.data(), original_data, NUM_VALUES * sizeof(uint8_t));
+    pixel_data.assign(original_data, original_data + NUM_VALUES);
 }
 
 Image::~Image() {}
